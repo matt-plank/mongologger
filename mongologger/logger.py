@@ -1,7 +1,7 @@
 import asyncio
 import traceback
 from datetime import datetime
-from typing import Any, Callable, Type
+from typing import Any, Callable, Coroutine, Type
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 
@@ -9,14 +9,24 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 class Logger:
     """MongoDB async logger."""
 
-    def __init__(self, host: str, port: int, db_name: str, collection_name: str):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        db_name: str,
+        collection_name: str,
+        username: str | None = None,
+        password: str | None = None,
+    ):
         """Initialise with a PyMongo collection."""
         self.host = host
         self.port = port
         self.db_name = db_name
         self.collection_name = collection_name
+        self.username = username
+        self.password = password
 
-        self.uri = f"mongodb://{self.host}:{self.port}/"
+        self.uri = f"mongodb://{username}:{password}@{host}:{port}/"
         self.client = AsyncIOMotorClient(self.uri)
         self.collection: AsyncIOMotorCollection = self.client[self.db_name][self.collection_name]
 
@@ -65,32 +75,75 @@ class Logger:
             elif kwarg in self.serializers:
                 kwargs[kwarg] = self.serializers[kwarg](kwargs[kwarg])
 
+    async def a_debug(self, **kwargs) -> None:
+        """Write a log at the DEBUG level."""
+        await self._debug_task(**kwargs)
+
     def debug(self, **kwargs) -> None:
         """Write a log at the DEBUG level."""
-        asyncio.create_task(self._write(level="DEBUG", **kwargs))
+        task = self._debug_task(**kwargs)
+        asyncio.ensure_future(task)
+
+    def _debug_task(self, **kwargs) -> Coroutine[None, None, None]:
+        """Write a log at the DEBUG level."""
+        return self._write(level="DEBUG", **kwargs)
+
+    async def a_info(self, **kwargs) -> None:
+        """Write a lot at the INFO level."""
+        await self._info_task(**kwargs)
 
     def info(self, **kwargs) -> None:
         """Write a log at the INFO level."""
-        asyncio.create_task(self._write(level="INFO", **kwargs))
+        task = self._info_task(**kwargs)
+        asyncio.ensure_future(task)
+
+    def _info_task(self, **kwargs) -> Coroutine[None, None, None]:
+        """Write a log at the INFO level."""
+        return self._write(level="INFO", **kwargs)
+
+    async def a_warning(self, **kwargs) -> None:
+        """Write a log at the WARNING level."""
+        await self._warning_task(**kwargs)
 
     def warning(self, **kwargs) -> None:
         """Write a log at the WARNING level."""
-        asyncio.create_task(self._write(level="WARNING", **kwargs))
+        task = self._warning_task(**kwargs)
+        asyncio.ensure_future(task)
+
+    def _warning_task(self, **kwargs) -> Coroutine[None, None, None]:
+        """Write a log at the WARNING level."""
+        return self._write(level="WARNING", **kwargs)
+
+    async def a_error(self, **kwargs) -> None:
+        """Write a log at the ERROR level."""
+        await self._error_task(**kwargs)
 
     def error(self, **kwargs) -> None:
         """Write a log at the ERROR level."""
-        asyncio.create_task(self._write(level="ERROR", **kwargs))
+        task = self._error_task(**kwargs)
+        asyncio.create_task(task)
 
-    def exception(self, exception: Exception, **kwargs) -> None:
+    def _error_task(self, **kwargs) -> Coroutine[None, None, None]:
+        """Write a log at the ERROR level."""
+        return self._write(level="ERROR", **kwargs)
+
+    async def a_exception(self, exception: Exception, **kwargs) -> None:
         """Write a log at the ERROR level with an exception."""
-        asyncio.create_task(
-            self._write(
-                level="EXCEPTION",
-                exception={
-                    "type": type(exception).__name__,
-                    "message": str(exception),
-                    "traceback": traceback.format_exc(),
-                },
-                **kwargs,
-            )
+        await self.exception_task(exception, **kwargs)
+
+    def exception(self, exception: Exception, **kwargs):
+        """Write a log at the ERROR level with an exception."""
+        task = self.exception_task(exception, **kwargs)
+        asyncio.ensure_future(task)
+
+    def exception_task(self, exception: Exception, **kwargs) -> Coroutine[None, None, None]:
+        """Write a log at the ERROR level with an exception."""
+        return self._write(
+            level="EXCEPTION",
+            exception={
+                "type": type(exception).__name__,
+                "message": str(exception),
+                "traceback": traceback.format_exc(),
+            },
+            **kwargs,
         )
