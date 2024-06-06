@@ -1,0 +1,13 @@
+FROM python:latest
+
+WORKDIR /build
+
+COPY requirements.dev.txt .
+RUN pip install --no-cache-dir -r requirements.dev.txt
+
+COPY mongologger mongologger
+COPY pyproject.toml .
+
+RUN python -m build
+
+CMD ["sh", "-c", "twine upload dist/* -u __token__ -p $PYPI_API_TOKEN"]
