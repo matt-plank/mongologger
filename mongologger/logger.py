@@ -9,28 +9,51 @@ from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 class Logger:
     """MongoDB async logger."""
 
-    def __init__(
-        self,
-        host: str,
-        port: int,
-        db_name: str,
-        collection_name: str,
-        username: str | None = None,
-        password: str | None = None,
-    ):
+    def __init__(self, **kwargs):
         """Initialise with a PyMongo collection."""
-        self.host = host
-        self.port = port
-        self.db_name = db_name
-        self.collection_name = collection_name
-        self.username = username
-        self.password = password
+        self.collection: AsyncIOMotorCollection | None = self._collection_from_host(kwargs)
 
-        self.uri = f"mongodb://{username}:{password}@{host}:{port}/"
-        self.client = AsyncIOMotorClient(self.uri)
-        self.collection: AsyncIOMotorCollection = self.client[self.db_name][self.collection_name]
+        if self.collection is None:
+            self.collection = self._collection_from_uri(kwargs)
+
+        if self.collection is None:
+            self.collection = kwargs.get("collection")
+
+        if self.collection is None:
+            raise ValueError("No collection provided.")
+
+        if not isinstance(self.collection, AsyncIOMotorCollection):
+            raise TypeError("Collection must be an instance of AsyncIOMotorCollection.")
 
         self.serializers: dict[Type, Callable] = {}
+
+    def _collection_from_host(self, kwargs) -> AsyncIOMotorCollection | None:
+        if "host" not in kwargs:
+            return None
+
+        username = kwargs["username"]
+        password = kwargs["password"]
+        host = kwargs["host"]
+        port = kwargs["port"]
+        uri = f"mongodb://{username}:{password}@{host}:{port}/"
+
+        db_name = kwargs["db_name"]
+        collection_name = kwargs["collection_name"]
+
+        client = AsyncIOMotorClient(uri)
+        return client[db_name][collection_name]
+
+    def _collection_from_uri(self, kwargs) -> AsyncIOMotorCollection | None:
+        if "uri" not in kwargs:
+            return None
+
+        uri = kwargs["uri"]
+        client = AsyncIOMotorClient(uri)
+
+        db_name = kwargs["db_name"]
+        collection_name = kwargs["collection_name"]
+
+        return client[db_name][collection_name]
 
     def serializer(self, kwarg_type: Type) -> Callable:
         """Decorator to add a serializer for a kwarg."""
@@ -53,6 +76,8 @@ class Logger:
 
     async def _insert_document(self, document: dict[str, Any]) -> None:
         """Insert a document to mongo (separated for better control)."""
+        assert self.collection is not None, "Collection not initialised."
+
         await self.collection.insert_one(document)
 
     async def _write(self, **kwargs) -> None:
