@@ -1,15 +1,17 @@
 import os
 
 from motor.motor_asyncio import AsyncIOMotorClient
-from pytest import fixture
+from pytest_asyncio import fixture
 
 from mongologger import Logger
 
 
-@fixture(params=["details", "uri"])
-def logger_from_details(request) -> Logger:
+@fixture(params=["details", "uri", "collection"])
+async def logger(request):
+    logger = None
+
     if request.param == "details":
-        return Logger(
+        logger = Logger(
             host=os.environ["MONGO_HOST"],
             port=int(os.environ["MONGO_PORT"]),
             db_name=os.environ["MONGO_DB"],
@@ -19,7 +21,7 @@ def logger_from_details(request) -> Logger:
         )
 
     if request.param == "uri":
-        return Logger(
+        logger = Logger(
             uri=os.environ["MONGO_URI"],
             db_name=os.environ["MONGO_DB"],
             collection_name=os.environ["MONGO_COLLECTION"],
@@ -27,8 +29,15 @@ def logger_from_details(request) -> Logger:
 
     if request.param == "collection":
         client = AsyncIOMotorClient(os.environ["MONGO_URI"])
-        return Logger(
+        logger = Logger(
             collection=client[os.environ["MONGO_DB"]][os.environ["MONGO_COLLECTION"]],
         )
 
-    assert False, "Invalid param"
+    assert logger is not None
+    assert logger.collection is not None
+
+    try:
+        yield logger
+    finally:
+        assert logger.collection is not None
+        await logger.collection.delete_many({})

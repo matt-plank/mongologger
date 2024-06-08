@@ -4,28 +4,66 @@ from mongologger import Logger
 
 
 @pytest.mark.asyncio
-async def test_debug(logger_from_details: Logger):
-    await logger_from_details.a_debug(message="This is a debug message")
+async def test_debug(logger: Logger):
+    await logger.debug(message="This is a debug message")
+
+    assert logger.collection is not None
+
+    doc = await logger.collection.find_one({"level": "DEBUG"})
+
+    assert doc is not None
+    assert doc["message"] == "This is a debug message"
 
 
 @pytest.mark.asyncio
-async def test_info(logger_from_details: Logger):
-    await logger_from_details.a_info(message="This is an info message")
+async def test_info(logger: Logger):
+    await logger.info(message="This is an info message")
+
+    assert logger.collection is not None
+
+    doc = await logger.collection.find_one({"level": "INFO"})
+
+    assert doc is not None
+    assert doc["message"] == "This is an info message"
 
 
 @pytest.mark.asyncio
-async def test_warning(logger_from_details: Logger):
-    await logger_from_details.a_warning(message="This is a warning message")
+async def test_warning(logger: Logger):
+    await logger.warning(message="This is a warning message")
+
+    assert logger.collection is not None
+
+    doc = await logger.collection.find_one({"level": "WARNING"})
+
+    assert doc is not None
+    assert doc["message"] == "This is a warning message"
 
 
 @pytest.mark.asyncio
-async def test_error(logger_from_details: Logger):
-    await logger_from_details.a_error(message="This is an error message")
+async def test_error(logger: Logger):
+    await logger.error(message="This is an error message")
+
+    assert logger.collection is not None
+
+    doc = await logger.collection.find_one({"level": "ERROR"})
+
+    assert doc is not None
+    assert doc["message"] == "This is an error message"
 
 
 @pytest.mark.asyncio
-async def test_exception(logger_from_details: Logger):
+async def test_exception(logger: Logger):
     try:
         raise ValueError("This is an exception")
     except ValueError as e:
-        await logger_from_details.a_exception(e, message="This is an exception message")
+        await logger.exception(e, message="This is an exception message")
+
+    assert logger.collection is not None
+
+    doc = await logger.collection.find_one({"level": "EXCEPTION"})
+
+    assert doc is not None
+    assert doc["exception"] is not None
+    assert doc["exception"]["type"] == "ValueError"
+    assert doc["exception"]["message"] == "This is an exception"
+    assert doc["exception"]["traceback"] is not None

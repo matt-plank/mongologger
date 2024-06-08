@@ -104,10 +104,10 @@ class Logger:
         """Write a log at the DEBUG level."""
         await self._debug_task(**kwargs)
 
-    def debug(self, **kwargs) -> None:
+    def debug(self, **kwargs) -> asyncio.Task[None]:
         """Write a log at the DEBUG level."""
         task = self._debug_task(**kwargs)
-        asyncio.ensure_future(task)
+        return asyncio.create_task(task)
 
     def _debug_task(self, **kwargs) -> Coroutine[None, None, None]:
         """Write a log at the DEBUG level."""
@@ -117,10 +117,10 @@ class Logger:
         """Write a lot at the INFO level."""
         await self._info_task(**kwargs)
 
-    def info(self, **kwargs) -> None:
+    def info(self, **kwargs) -> asyncio.Task[None]:
         """Write a log at the INFO level."""
         task = self._info_task(**kwargs)
-        asyncio.ensure_future(task)
+        return asyncio.create_task(task)
 
     def _info_task(self, **kwargs) -> Coroutine[None, None, None]:
         """Write a log at the INFO level."""
@@ -130,10 +130,10 @@ class Logger:
         """Write a log at the WARNING level."""
         await self._warning_task(**kwargs)
 
-    def warning(self, **kwargs) -> None:
+    def warning(self, **kwargs) -> asyncio.Task[None]:
         """Write a log at the WARNING level."""
         task = self._warning_task(**kwargs)
-        asyncio.ensure_future(task)
+        return asyncio.create_task(task)
 
     def _warning_task(self, **kwargs) -> Coroutine[None, None, None]:
         """Write a log at the WARNING level."""
@@ -143,10 +143,10 @@ class Logger:
         """Write a log at the ERROR level."""
         await self._error_task(**kwargs)
 
-    def error(self, **kwargs) -> None:
+    def error(self, **kwargs) -> asyncio.Task[None]:
         """Write a log at the ERROR level."""
         task = self._error_task(**kwargs)
-        asyncio.create_task(task)
+        return asyncio.create_task(task)
 
     def _error_task(self, **kwargs) -> Coroutine[None, None, None]:
         """Write a log at the ERROR level."""
@@ -156,10 +156,10 @@ class Logger:
         """Write a log at the ERROR level with an exception."""
         await self.exception_task(exception, **kwargs)
 
-    def exception(self, exception: Exception, **kwargs):
+    def exception(self, exception: Exception, **kwargs) -> asyncio.Task[None]:
         """Write a log at the ERROR level with an exception."""
         task = self.exception_task(exception, **kwargs)
-        asyncio.ensure_future(task)
+        return asyncio.create_task(task)
 
     def exception_task(self, exception: Exception, **kwargs) -> Coroutine[None, None, None]:
         """Write a log at the ERROR level with an exception."""
